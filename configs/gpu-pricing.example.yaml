@@ -1,0 +1,30 @@
+# Example payload for the `gpu-pricing` ConfigMap (`pricing.yaml` data key).
+# Schema: docs/contract.md
+#
+# RULE PRECEDENCE: first-match-wins by list order.
+# The matcher iterates rules top-to-bottom and returns the price of the FIRST
+# rule whose match.node_labels are ALL present on the node.  More-specific rules
+# (more labels) must therefore appear BEFORE any general rule that shares a
+# subset of those labels — otherwise the general rule matches first and the
+# specific rule is never reached.
+
+version: 1
+currency: USD
+GPUs:
+  # --- Spot/pre-emptible A10G (more-specific rule — MUST come first) ---
+  # Matches nodes that carry BOTH accelerator=nvidia-a10g AND kubefisher.io/spot=true.
+  # Placed before the on-demand rule below; if the order were reversed the general
+  # rule would match spot nodes first (first-match-wins) and this entry would be dead.
+  - description: "A10G on spot / pre-emptible node (30 % of on-demand)"
+    match:
+      node_labels:
+        accelerator: "nvidia-a10g"
+        kubefisher.io/spot: "true"
+    price_per_gpu_hour: 0.38   # 1.25 × 0.30 ≈ 0.38
+
+  # --- On-demand A10G (general rule — comes after the spot override) ---
+  - description: "Dev k3d fake A10G-ish label"
+    match:
+      node_labels:
+        accelerator: "nvidia-a10g"
+    price_per_gpu_hour: 1.25

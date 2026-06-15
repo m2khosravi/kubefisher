@@ -1,0 +1,26 @@
+{{- if and .Values.operator.enabled .Values.observability.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "kubefisher.operator.fullname" . }}
+  namespace: {{ include "kubefisher.namespaceOrDefault" (dict "ns" .Values.observability.serviceMonitor.namespace "ctx" .) }}
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+    {{- with .Values.observability.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "kubefisher.operator.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http-metrics
+      path: /metrics
+      interval: {{ .Values.observability.serviceMonitor.interval }}
+      {{- with .Values.observability.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+{{- end -}}

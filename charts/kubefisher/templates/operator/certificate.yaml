@@ -1,0 +1,32 @@
+{{- if and .Values.operator.enabled .Values.operator.webhook.enabled .Values.operator.webhook.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "kubefisher.operator.webhookIssuerName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "kubefisher.operator.webhookCertificateName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "kubefisher.operator.webhookSecretName" . }}
+  duration: 8760h
+  renewBefore: 720h
+  dnsNames:
+    - {{ include "kubefisher.operator.webhookServiceName" . }}
+    - {{ include "kubefisher.operator.webhookServiceName" . }}.{{ .Release.Namespace }}
+    - {{ include "kubefisher.operator.webhookServiceName" . }}.{{ .Release.Namespace }}.svc
+    - {{ include "kubefisher.operator.webhookServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    name: {{ include "kubefisher.operator.webhookIssuerName" . }}
+    kind: Issuer
+    group: cert-manager.io
+{{- end }}

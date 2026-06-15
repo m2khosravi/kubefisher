@@ -1,0 +1,13 @@
+{{- if .Values.gpuPricing.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.gpuPricing.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubefisher.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gpu-pricing
+data:
+  {{ .Values.gpuPricing.dataKey }}: |
+    {{- toYaml .Values.gpuPricing.pricing | nindent 4 }}
+{{- end -}}

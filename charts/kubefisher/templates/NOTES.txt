@@ -1,0 +1,81 @@
+KubeFisher {{ .Chart.AppVersion }} has been installed in namespace "{{ .Release.Namespace }}".
+
+Release name: {{ .Release.Name }}
+Cost-patcher image: {{ include "kubefisher.image" . }}
+
+What just landed on your cluster:
+
+  - Namespace:                {{ .Release.Namespace }}
+  - ServiceAccount + RBAC:    {{ include "kubefisher.serviceAccountName" . }}
+  - cost-patcher Deployment:  {{ include "kubefisher.fullname" . }}
+  - cost-patcher Service:     {{ include "kubefisher.fullname" . }} (port {{ .Values.service.port }})
+{{- if .Values.operator.enabled }}
+  - quota operator:           {{ include "kubefisher.operator.fullname" . }}
+{{- if .Values.operator.webhook.enabled }}
+  - webhook Service:          {{ include "kubefisher.operator.webhookServiceName" . }} (443 -> 9443)
+  - failurePolicy:            Ignore (see docs/security.md; verify: docs/verify-quota.md)
+{{- end }}
+{{- else }}
+  - quota operator:           DISABLED (--set operator.enabled=true)
+{{- end }}
+{{- if .Values.gpuPricing.create }}
+  - GPU pricing ConfigMap:    {{ .Values.gpuPricing.name }}
+{{- else }}
+  - GPU pricing ConfigMap:    DISABLED (you must provide "{{ .Values.gpuPricing.name }}" yourself)
+{{- end }}
+{{- if .Values.observability.serviceMonitor.enabled }}
+  - ServiceMonitor:           ENABLED in {{ include "kubefisher.namespaceOrDefault" (dict "ns" .Values.observability.serviceMonitor.namespace "ctx" .) }}
+{{- else }}
+  - ServiceMonitor:           DISABLED
+{{- end }}
+{{- if .Values.observability.prometheusRule.enabled }}
+  - PrometheusRule (rules):   ENABLED in {{ include "kubefisher.namespaceOrDefault" (dict "ns" .Values.observability.prometheusRule.namespace "ctx" .) }}
+{{- else }}
+  - PrometheusRule (rules):   DISABLED
+{{- end }}
+{{- if .Values.observability.grafanaDashboard.enabled }}
+  - Grafana dashboard CM:     ENABLED in {{ include "kubefisher.namespaceOrDefault" (dict "ns" .Values.observability.grafanaDashboard.namespace "ctx" .) }}
+{{- else }}
+  - Grafana dashboard CM:     DISABLED
+{{- end }}
+
+Next steps:
+
+  1. Verify the cost-patcher rollout:
+
+       kubectl rollout status deploy/{{ include "kubefisher.fullname" . }} -n {{ .Release.Namespace }}
+
+  2. Tail the logs to confirm Prometheus connectivity and pricing reload:
+
+       kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "kubefisher.fullname" . }} -f
+
+  3. Override the GPU pricing for your real nodes (the chart ships a placeholder
+     A10G entry). Edit values.yaml under "gpuPricing.pricing" or pass
+     --set-file gpuPricing.pricing.GPUs=path/to/your-pricing.yaml on upgrade.
+
+  4. Open the KubeFisher dashboard in Grafana (auto-imported via the sidecar):
+
+       kubectl port-forward -n monitoring svc/{{ default "prometheus-grafana" "" }} 3000:80
+
+     Look for the dashboard titled "KubeFisher".
+
+If your kube-prometheus-stack release is not named "prometheus", override the
+ServiceMonitor and PrometheusRule labels:
+
+  --set observability.serviceMonitor.additionalLabels.release=<your-release> \
+  --set observability.prometheusRule.additionalLabels.release=<your-release>
+
+{{- if and .Values.operator.enabled .Values.operator.webhook.enabled }}
+
+  Quota enforcement (opt-in per namespace):
+
+    kubectl label namespace <team-ns> kubefisher.io/quota-enforcement=enabled
+
+  Local k3d: build + import image before pods start:
+    make operator-image && make cluster-k3d-import-operator
+
+  End-to-end verification: docs/verify-quota.md (see also docs/security.md)
+
+{{- end }}
+
+Full configuration reference: charts/kubefisher/values.yaml

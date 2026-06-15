@@ -1,0 +1,21 @@
+# CI: minimal install with all observability integrations disabled.
+# Verifies the chart still renders cleanly when a user has neither
+# Prometheus Operator nor a Grafana sidecar available.
+observability:
+  serviceMonitor:
+    enabled: false
+  prometheusRule:
+    enabled: false
+  grafanaDashboard:
+    enabled: false
+gpuPricing:
+  create: true
+  pricing:
+    version: 1
+    currency: USD
+    GPUs:
+      - description: "CI test entry"
+        match:
+          node_labels:
+            accelerator: "nvidia-a10g"
+        price_per_gpu_hour: 1.25

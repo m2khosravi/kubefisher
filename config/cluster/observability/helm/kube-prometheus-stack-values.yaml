@@ -1,0 +1,42 @@
+# Minimal values for a local k3d observability stack.
+# Goals:
+# - Grafana reachable on stable http://localhost:3000
+# - Prometheus reachable on stable http://localhost:9090
+# - Allow ServiceMonitors we create (dcgm-mock) to be discovered
+
+grafana:
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  envFromConfigMaps:
+    - name: grafana-env
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana.sidecar.dashboards
+      labelValue: "1"
+      searchNamespace: ALL
+  service:
+    type: LoadBalancer
+    port: 3000
+    targetPort: 3000
+
+kube-state-metrics:
+  extraArgs:
+    # Expose kube_pod_labels with kubefisher.io/* identity labels so that
+    # kubefisher:cost_per_hour recording rules can join team/platform/model
+    # onto cost series. Without this, kube_pod_labels is absent (0 series)
+    # and all pods fall through to the "unlabeled" fallback branch.
+    - --metric-labels-allowlist=pods=[kubefisher.io/team,kubefisher.io/platform,kubefisher.io/model,app.kubernetes.io/name]
+
+prometheus:
+  service:
+    type: LoadBalancer
+    port: 9090
+    targetPort: 9090
+  prometheusSpec:
+    # Allow scraping ServiceMonitors not labeled by the chart itself.
+    serviceMonitorSelector: {}
+    serviceMonitorSelectorNilUsesHelmValues: false
+

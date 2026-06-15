@@ -1,0 +1,14 @@
+{{- if .Values.observability.grafanaDashboard.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubefisher.fullname" . }}-grafana-dashboard
+  namespace: {{ include "kubefisher.namespaceOrDefault" (dict "ns" .Values.observability.grafanaDashboard.namespace "ctx" .) }}
+  labels:
+    {{- include "kubefisher.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana-dashboard
+    {{ .Values.observability.grafanaDashboard.sidecarLabel }}: {{ .Values.observability.grafanaDashboard.sidecarLabelValue | quote }}
+data:
+  kubefisher-dashboard.json: |-
+    {{- .Files.Get "dashboards/kubefisher-dashboard.json" | nindent 4 }}
+{{- end -}}

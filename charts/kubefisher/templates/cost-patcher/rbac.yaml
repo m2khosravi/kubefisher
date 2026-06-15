@@ -1,0 +1,75 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kubefisher.fullname" . }}
+  labels:
+    {{- include "kubefisher.costPatcher.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["patch", "update"]
+  - apiGroups: ["serving.kserve.io"]
+    resources: ["inferenceservices"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["serving.yatai.ai"]
+    resources: ["bentodeployments"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["trainer.kubeflow.org"]
+    resources: ["trainjobs"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["ray.io"]
+    resources: ["rayservices"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kubefisher.fullname" . }}
+  labels:
+    {{- include "kubefisher.costPatcher.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kubefisher.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubefisher.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "kubefisher.fullname" . }}-pricing
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubefisher.costPatcher.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "watch", "list"]
+    resourceNames: [{{ .Values.gpuPricing.name | quote }}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kubefisher.fullname" . }}-pricing
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubefisher.costPatcher.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "kubefisher.fullname" . }}-pricing
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubefisher.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

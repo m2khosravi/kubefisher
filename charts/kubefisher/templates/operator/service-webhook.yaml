@@ -1,0 +1,18 @@
+{{- if and .Values.operator.enabled .Values.operator.webhook.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kubefisher.operator.webhookServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "kubefisher.operator.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: https-webhook
+      port: 443
+      targetPort: webhook-server
+      protocol: TCP
+{{- end }}

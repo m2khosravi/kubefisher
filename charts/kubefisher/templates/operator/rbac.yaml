@@ -1,0 +1,42 @@
+{{- if .Values.operator.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kubefisher.operator.fullname" . }}
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: ["quota.kubefisher.io"]
+    resources: ["teaminferencequotas"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["quota.kubefisher.io"]
+    resources: ["teaminferencequotas/finalizers"]
+    verbs: ["update"]
+  - apiGroups: ["quota.kubefisher.io"]
+    resources: ["teaminferencequotas/status"]
+    verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kubefisher.operator.fullname" . }}
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kubefisher.operator.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubefisher.operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

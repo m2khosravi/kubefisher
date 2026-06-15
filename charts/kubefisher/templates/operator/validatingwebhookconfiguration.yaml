@@ -1,0 +1,46 @@
+{{- if and .Values.operator.enabled .Values.operator.webhook.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "kubefisher.operator.fullname" . }}-webhook
+  labels:
+    {{- include "kubefisher.operator.labels" . | nindent 4 }}
+  {{- if .Values.operator.webhook.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ include "kubefisher.operator.webhookCAInjectFrom" . | quote }}
+  {{- end }}
+webhooks:
+  - name: vpod.kb.io
+    admissionReviewVersions:
+      - v1
+    sideEffects: None
+    # v0: Ignore — see docs/security.md. Revisit for v1 with HA operator.
+    failurePolicy: Ignore
+    matchPolicy: Equivalent
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["pods"]
+        scope: Namespaced
+    namespaceSelector:
+      matchExpressions:
+        - key: {{ .Values.operator.webhook.namespaceSelector.labelKey | quote }}
+          operator: In
+          values:
+            - {{ .Values.operator.webhook.namespaceSelector.labelValue | quote }}
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - {{ .Release.Namespace | quote }}
+            {{- range .Values.operator.webhook.namespaceSelector.excludedNamespaces }}
+            - {{ . | quote }}
+            {{- end }}
+    clientConfig:
+      service:
+        name: {{ include "kubefisher.operator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate--v1-pod
+        port: 443
+{{- end }}

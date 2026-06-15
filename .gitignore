@@ -1,0 +1,27 @@
+# Compiled binaries
+bin/
+dist/
+
+# Go test/coverage artifacts
+*.test
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Kubernetes generated files (keep vendored)
+!vendor/**/zz_generated.*
+
+# Secrets / kubeconfig
+*.kubeconfig
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

@@ -1,0 +1,198 @@
+{{- if .Values.observability.prometheusRule.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "kubefisher.fullname" . }}-recording-rules
+  namespace: {{ include "kubefisher.namespaceOrDefault" (dict "ns" .Values.observability.prometheusRule.namespace "ctx" .) }}
+  labels:
+    {{- include "kubefisher.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recording-rules
+    {{- with .Values.observability.prometheusRule.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: kubefisher.cost
+      interval: 30s
+      rules:
+        # GPU compute $/hr per pod, joined to the list pricing exposed by the
+        # cost-patcher: kubefisher_gpu_price_per_hour_by_node{node, currency}.
+        - record: kubefisher:cost_per_hour
+          expr: |
+            (
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      label_replace(
+                        label_replace(
+                          (
+                            (
+                              sum by (namespace, pod) (
+                                sum by (namespace, pod, node) (
+                                  kube_pod_container_resource_limits{resource="nvidia_com_gpu"}
+                                    * on(namespace, pod) group_left(node)
+                                      max by (namespace, pod, node) (
+                                        kube_pod_info{node!="", namespace!="", pod!=""}
+                                      )
+                                )
+                                * on(node) group_left(currency) kubefisher_gpu_price_per_hour_by_node
+                              )
+                            )
+                            * on(namespace, pod) group_left(label_kubefisher_io_model, label_kubefisher_io_platform, label_kubefisher_io_team)
+                              kube_pod_labels
+                          ),
+                          "kubefisher_io_model",
+                          "$1",
+                          "label_kubefisher_io_model",
+                          "(.*)"
+                        ),
+                        "kubefisher_io_platform",
+                        "$1",
+                        "label_kubefisher_io_platform",
+                        "(.*)"
+                      ),
+                      "kubefisher_io_team",
+                      "$1",
+                      "label_kubefisher_io_team",
+                      "(.*)"
+                    ),
+                    "kubefisher_io_model",
+                    "unlabeled",
+                    "kubefisher_io_model",
+                    "^$"
+                  ),
+                  "kubefisher_io_platform",
+                  "unlabeled",
+                  "kubefisher_io_platform",
+                  "^$"
+                ),
+                "kubefisher_io_team",
+                "unlabeled",
+                "kubefisher_io_team",
+                "^$"
+              )
+            )
+            or
+            (
+              label_replace(
+                label_replace(
+                  label_replace(
+                    (
+                      sum by (namespace, pod) (
+                        sum by (namespace, pod, node) (
+                          kube_pod_container_resource_limits{resource="nvidia_com_gpu"}
+                            * on(namespace, pod) group_left(node)
+                              max by (namespace, pod, node) (
+                                kube_pod_info{node!="", namespace!="", pod!=""}
+                              )
+                        )
+                        * on(node) group_left(currency) kubefisher_gpu_price_per_hour_by_node
+                      )
+                    ) unless on(namespace, pod) kube_pod_labels,
+                    "kubefisher_io_model",
+                    "unlabeled",
+                    "kubefisher_io_model",
+                    "^$"
+                  ),
+                  "kubefisher_io_platform",
+                  "unlabeled",
+                  "kubefisher_io_platform",
+                  "^$"
+                ),
+                "kubefisher_io_team",
+                "unlabeled",
+                "kubefisher_io_team",
+                "^$"
+              )
+            )
+        # Best-effort $/generated-token (omits series when vLLM counters are
+        # absent or token rate is 0).
+        - record: kubefisher:cost_per_token
+          expr: |
+            (
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      label_replace(
+                        label_replace(
+                          (
+                            (
+                              kubefisher:cost_per_hour
+                              / on(namespace, pod) group_left()
+                              ((rate(vllm:prompt_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}]) + rate(vllm:generation_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}])) * 3600)
+                            )
+                            and on(namespace, pod) ((rate(vllm:prompt_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}]) + rate(vllm:generation_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}])) > 0)
+                          )
+                          * on(namespace, pod) group_left(label_kubefisher_io_model, label_kubefisher_io_platform, label_kubefisher_io_team)
+                            kube_pod_labels,
+                          "kubefisher_io_model",
+                          "$1",
+                          "label_kubefisher_io_model",
+                          "(.*)"
+                        ),
+                        "kubefisher_io_platform",
+                        "$1",
+                        "label_kubefisher_io_platform",
+                        "(.*)"
+                      ),
+                      "kubefisher_io_team",
+                      "$1",
+                      "label_kubefisher_io_team",
+                      "(.*)"
+                    ),
+                    "kubefisher_io_model",
+                    "unlabeled",
+                    "kubefisher_io_model",
+                    "^$"
+                  ),
+                  "kubefisher_io_platform",
+                  "unlabeled",
+                  "kubefisher_io_platform",
+                  "^$"
+                ),
+                "kubefisher_io_team",
+                "unlabeled",
+                "kubefisher_io_team",
+                "^$"
+              )
+            )
+            or
+            (
+              label_replace(
+                label_replace(
+                  label_replace(
+                    (
+                      (
+                        kubefisher:cost_per_hour
+                        / on(namespace, pod) group_left()
+                        ((rate(vllm:prompt_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}]) + rate(vllm:generation_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}])) * 3600)
+                      )
+                      and on(namespace, pod) ((rate(vllm:prompt_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}]) + rate(vllm:generation_tokens_total[{{ .Values.costPatcher.tokenRateWindow }}])) > 0)
+                    ) unless on(namespace, pod) kube_pod_labels,
+                    "kubefisher_io_model",
+                    "unlabeled",
+                    "kubefisher_io_model",
+                    "^$"
+                  ),
+                  "kubefisher_io_platform",
+                  "unlabeled",
+                  "kubefisher_io_platform",
+                  "^$"
+                ),
+                "kubefisher_io_team",
+                "unlabeled",
+                "kubefisher_io_team",
+                "^$"
+              )
+            )
+    - name: kubefisher.efficiency
+      interval: 30s
+      rules:
+        # DCGM mock/real exporters may not attach Kubernetes namespace labels.
+        # This is a cluster-wide efficiency signal (0-100) until per-namespace
+        # joins are standardized in your scrape config.
+        - record: kubefisher:gpu_efficiency_pct
+          expr: avg(DCGM_FI_DEV_GPU_UTIL)
+{{- end -}}

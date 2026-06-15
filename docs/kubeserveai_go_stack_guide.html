@@ -1,0 +1,545 @@
+
+<!DOCTYPE html>
+<html><head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:transparent;font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 14px;font-size:12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all .15s}
+.tab.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info);font-weight:500}
+.panel{display:none}.panel.active{display:block}
+.comp{margin-bottom:14px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.comp-hdr{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;background:var(--color-background-secondary)}
+.comp-hdr:hover{opacity:.85}
+.comp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.comp-title{font-size:13px;font-weight:500;color:var(--color-text-primary);flex:1}
+.comp-tag{font-size:10px;padding:2px 8px;border-radius:var(--border-radius-md);font-weight:500}
+.t-yours{background:#FFF3CD;color:#7B4B00;border:0.5px solid #F0C040}
+.t-eco{background:#E1F5EE;color:#085041}
+.t-paid{background:#E6F1FB;color:#0C447C}
+.comp-chev{font-size:10px;color:var(--color-text-tertiary);transition:transform .2s}
+.comp-chev.open{transform:rotate(90deg)}
+.comp-body{display:none;border-top:0.5px solid var(--color-border-tertiary)}
+.comp-body.open{display:block}
+.section{padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.section:last-child{border-bottom:none}
+.s-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--color-text-tertiary);margin-bottom:8px}
+.row{display:flex;gap:8px;font-size:12px;padding:4px 0;border-top:0.5px solid var(--color-border-tertiary);line-height:1.5;align-items:flex-start}
+.row:first-of-type{border-top:none}
+.row b{color:var(--color-text-primary);min-width:110px;flex-shrink:0;font-size:11px}
+.row span{color:var(--color-text-secondary)}
+code{font-family:monospace;font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:3px;color:var(--color-text-primary)}
+.code-block{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;font-family:monospace;font-size:11px;color:var(--color-text-primary);margin-top:6px;line-height:1.7;overflow-x:auto;white-space:pre}
+.ask-btn{display:inline-block;margin-top:8px;font-size:11px;padding:3px 9px;color:var(--color-text-info);border:0.5px solid var(--color-border-info);background:transparent;border-radius:var(--border-radius-md);cursor:pointer}
+.ask-btn:hover{background:var(--color-background-info)}
+.rule{display:flex;gap:8px;padding:5px 0;border-top:0.5px solid var(--color-border-tertiary);font-size:12px;align-items:flex-start}
+.rule:first-of-type{border-top:none}
+.rule-num{font-size:10px;font-weight:600;min-width:24px;color:var(--color-text-tertiary);margin-top:1px}
+.rule-body{color:var(--color-text-secondary);flex:1;line-height:1.5}
+.rule-body b{color:var(--color-text-primary)}
+.verdict{background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-lg);padding:10px 14px;margin-bottom:12px}
+.verdict b{color:var(--color-text-info)}
+.verdict p{font-size:12px;color:var(--color-text-secondary);line-height:1.7;margin-top:4px}
+</style>
+</head><body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('stack')">Tech stack per component</button>
+  <button class="tab" onclick="show('practices')">Go best practices</button>
+  <button class="tab" onclick="show('structure')">Project structure</button>
+  <button class="tab" onclick="show('tooling')">Tooling + CI</button>
+</div>
+
+<!-- ══ TECH STACK ══ -->
+<div class="panel active" id="p-stack">
+
+<!-- Cost patcher -->
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('cp')" style="border-left:3px solid #F0C040">
+    <div class="comp-dot" style="background:#F0C040"></div>
+    <span class="comp-title">★ Cost patcher — core binary</span>
+    <span class="comp-tag t-yours">your product</span>
+    <span class="comp-chev open" id="chev-cp">▶</span>
+  </div>
+  <div class="comp-body open" id="body-cp">
+    <div class="section">
+      <div class="s-title">Libraries</div>
+      <div class="row"><b>Go version</b><span>Go 1.26 — use the latest stable, pin in go.mod</span></div>
+      <div class="row"><b>K8s client</b><span><code>sigs.k8s.io/controller-runtime</code> — use its <code>client.Client</code> with caching. Faster than raw client-go for list/watch operations. Exactly what kubebuilder uses.</span></div>
+      <div class="row"><b>Prometheus client</b><span><code>github.com/prometheus/client_golang</code> — for exposing /metrics. Also use its HTTP API client to query Prometheus for recording rule values.</span></div>
+      <div class="row"><b>Logging</b><span><code>log/slog</code> (stdlib, Go 1.21+) — JSON handler in production, text handler locally. No zap needed — slog is the 2026 standard and has zero external deps.</span></div>
+      <div class="row"><b>HTTP server</b><span><code>net/http</code> stdlib — for /healthz, /readyz, /metrics. No framework needed for 3 endpoints.</span></div>
+      <div class="row"><b>Testing</b><span><code>testing</code> stdlib + <code>github.com/stretchr/testify</code> for assertions. Table-driven tests only.</span></div>
+      <div class="code-block">// go.mod — cost patcher
+require (
+  sigs.k8s.io/controller-runtime v0.20.x
+  github.com/prometheus/client_golang v1.22.x
+  k8s.io/apimachinery v0.32.x
+  k8s.io/client-go v0.32.x
+  github.com/stretchr/testify v1.10.x
+  // stdlib only for logging (log/slog) and HTTP (net/http)
+)</div>
+      <button class="ask-btn" onclick="sendPrompt('Show me the complete main.go for the KubeFisher cost patcher using controller-runtime client, log/slog, and net/http for probes')">Show me main.go ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- TeamInferenceQuota operator -->
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('tiq')" style="border-left:3px solid #F0C040">
+    <div class="comp-dot" style="background:#F0C040"></div>
+    <span class="comp-title">★ TeamInferenceQuota operator</span>
+    <span class="comp-tag t-yours">your product</span>
+    <span class="comp-chev open" id="chev-tiq">▶</span>
+  </div>
+  <div class="comp-body open" id="body-tiq">
+    <div class="section">
+      <div class="s-title">Libraries</div>
+      <div class="row"><b>Scaffold</b><span><code>kubebuilder v4</code> — scaffolds CRD types, controller, webhook, RBAC markers, Makefile. Do not use operator-sdk — kubebuilder is the upstream standard.</span></div>
+      <div class="row"><b>Runtime</b><span><code>sigs.k8s.io/controller-runtime</code> — same as cost patcher. Provides reconcile loop, caches, status patching, leader election.</span></div>
+      <div class="row"><b>Logging</b><span><code>logr</code> interface via <code>log.FromContext(ctx)</code> — this is the controller-runtime standard. Backed by zap under the hood (kubebuilder sets this up for you).</span></div>
+      <div class="row"><b>Webhook</b><span>kubebuilder scaffolds ValidatingWebhook automatically. Uses <code>sigs.k8s.io/controller-runtime/pkg/webhook</code>. cert-manager handles TLS.</span></div>
+      <div class="row"><b>Testing</b><span><code>sigs.k8s.io/controller-runtime/pkg/envtest</code> — runs a real API server in tests. Much better than mocking. kubebuilder scaffolds this for you.</span></div>
+      <div class="code-block">// Reconcile function signature — kubebuilder generates this
+func (r *TeamInferenceQuotaReconciler) Reconcile(
+  ctx context.Context,
+  req ctrl.Request,
+) (ctrl.Result, error) {
+  log := log.FromContext(ctx) // structured logging from context
+
+  var quota quotav1alpha1.TeamInferenceQuota
+  if err := r.Get(ctx, req.NamespacedName, &quota); err != nil {
+    return ctrl.Result{}, client.IgnoreNotFound(err)
+  }
+  // your logic here
+  return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
+}</div>
+      <button class="ask-btn" onclick="sendPrompt('Show me the kubebuilder scaffold commands for TeamInferenceQuota CRD and ValidatingWebhook')">Scaffold commands ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLI -->
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('cli')" style="border-left:3px solid #EA580C">
+    <div class="comp-dot" style="background:#EA580C"></div>
+    <span class="comp-title">CLI — kubefisher</span>
+    <span class="comp-tag t-yours">your product</span>
+    <span class="comp-chev open" id="chev-cli">▶</span>
+  </div>
+  <div class="comp-body open" id="body-cli">
+    <div class="section">
+      <div class="s-title">Libraries</div>
+      <div class="row"><b>CLI framework</b><span><code>github.com/spf13/cobra</code> v1 — the kubectl-style CLI standard. Every Kubernetes tool uses it. Gives you subcommands, flags, help text, completions for free.</span></div>
+      <div class="row"><b>K8s client</b><span><code>k8s.io/client-go</code> + <code>clientcmd</code> — load kubeconfig exactly as kubectl does. Auto-detects current context, namespace, and credentials.</span></div>
+      <div class="row"><b>Output</b><span><code>github.com/olekukonko/tablewriter</code> for table rendering. <code>encoding/json</code> and <code>gopkg.in/yaml.v3</code> for --output json/yaml flags.</span></div>
+      <div class="row"><b>Colours</b><span><code>github.com/fatih/color</code> — red for over-budget, yellow for warning, green for healthy. Disable when stdout is not a TTY.</span></div>
+      <div class="row"><b>Progress</b><span><code>github.com/briandowns/spinner</code> — for deploy watch loop. Light dependency, zero friction.</span></div>
+      <div class="code-block">// cmd/deploy.go — Cobra command pattern
+var deployCmd = &cobra.Command{
+  Use:   "deploy",
+  Short: "Deploy a model to your cluster",
+  RunE: func(cmd *cobra.Command, args []string) error {
+    cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+    if err != nil {
+      return fmt.Errorf("loading kubeconfig: %w", err)
+    }
+    // use cfg to build client and create resource
+    return nil
+  },
+}
+func init() {
+  deployCmd.Flags().StringVar(&model, "model", "", "HuggingFace model ID (required)")
+  deployCmd.Flags().StringVar(&gpu, "gpu", "a10g", "GPU type")
+  deployCmd.MarkFlagRequired("model")
+}</div>
+      <button class="ask-btn" onclick="sendPrompt('Show me the full kubefisher cost command using cobra, tablewriter, and fatih/color that reads annotations from all serving platforms')">Show me cost command ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prometheus + observability -->
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('obs')" style="border-left:3px solid #1D9E75">
+    <div class="comp-dot" style="background:#1D9E75"></div>
+    <span class="comp-title">Observability stack</span>
+    <span class="comp-tag t-eco">ecosystem — Helm install</span>
+    <span class="comp-chev open" id="chev-obs">▶</span>
+  </div>
+  <div class="comp-body open" id="body-obs">
+    <div class="section">
+      <div class="s-title">What you install, not build</div>
+      <div class="row"><b>Prometheus</b><span><code>prometheus-community/kube-prometheus-stack</code> Helm chart. Includes Prometheus, Alertmanager, Grafana, and node-exporter. One helm install gives you everything.</span></div>
+      <div class="row"><b>DCGM Exporter</b><span><code>nvidia/gpu-operator</code> Helm chart on real GPU nodes. Installs DCGM Exporter DaemonSet automatically. On k3d locally, use the fake-dcgm ConfigMap instead.</span></div>
+      <div class="row"><b>Your additions</b><span>PrometheusRule CRD (recording rules for cost_per_token), ServiceMonitor CRD (scrapes vLLM /metrics), Grafana dashboard ConfigMap. All packaged in your Helm chart.</span></div>
+      <div class="row"><b>Key metrics</b><span>DCGM_FI_DEV_GPU_UTIL (GPU %), vllm:num_generation_tokens_total (token throughput), kube_pod_container_resource_limits{resource="nvidia_com_gpu"} (GPU allocation).</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- In-cluster agent -->
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('agent')" style="border-left:3px solid #4F46E5">
+    <div class="comp-dot" style="background:#4F46E5"></div>
+    <span class="comp-title">In-cluster agent (paid tier)</span>
+    <span class="comp-tag t-paid">paid tier</span>
+    <span class="comp-chev open" id="chev-agent">▶</span>
+  </div>
+  <div class="comp-body open" id="body-agent">
+    <div class="section">
+      <div class="s-title">Libraries</div>
+      <div class="row"><b>Go version</b><span>Go 1.26 — same as cost patcher</span></div>
+      <div class="row"><b>HTTP client</b><span><code>net/http</code> stdlib. No framework. POST JSON payload to hosted backend every 30s.</span></div>
+      <div class="row"><b>Prometheus query</b><span>Reuse the same <code>prometheus/client_golang</code> HTTP API client from the cost patcher — extract to shared internal package.</span></div>
+      <div class="row"><b>Auth</b><span>Read cluster API key from Kubernetes Secret via <code>controller-runtime client</code>. Never embed in env vars.</span></div>
+      <div class="row"><b>Retry</b><span><code>github.com/cenkalti/backoff/v4</code> — exponential backoff on POST failure. Prevents thundering herd when hosted backend restarts.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hosted dashboard -->
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('dash')" style="border-left:3px solid #4F46E5">
+    <div class="comp-dot" style="background:#4F46E5"></div>
+    <span class="comp-title">Hosted dashboard + backend (paid tier)</span>
+    <span class="comp-tag t-paid">paid tier</span>
+    <span class="comp-chev open" id="chev-dash">▶</span>
+  </div>
+  <div class="comp-body open" id="body-dash">
+    <div class="section">
+      <div class="s-title">Frontend</div>
+      <div class="row"><b>Framework</b><span>React 19 + Vite 6 — fastest dev experience, zero config, good for dashboards</span></div>
+      <div class="row"><b>Charts</b><span><code>recharts</code> — React-native, composable, enough for cost/token bar charts and time-series</span></div>
+      <div class="row"><b>Auth</b><span>GitHub OAuth via <code>next-auth</code> or a simple OAuth2 redirect — team-scoped access</span></div>
+      <div class="row"><b>Deploy</b><span>Vercel free tier — zero ops, auto-deploys from main branch push</span></div>
+    </div>
+    <div class="section">
+      <div class="s-title">Backend</div>
+      <div class="row"><b>Language</b><span>Go 1.26 — same language as everything else. One mental model.</span></div>
+      <div class="row"><b>Router</b><span><code>github.com/go-chi/chi/v5</code> — lightweight, idiomatic, stdlib-compatible. Not Gin, not Echo — chi is the right size for a small API.</span></div>
+      <div class="row"><b>Database</b><span>SQLite via <code>modernc.org/sqlite</code> (pure Go, no CGO) for launch. Migrate to Postgres when you have 20+ customers.</span></div>
+      <div class="row"><b>Deploy</b><span>Railway or Fly.io — both free tier friendly, Docker deploy, Go binary</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ══ BEST PRACTICES ══ -->
+<div class="panel" id="p-practices">
+
+<div class="verdict">
+  <b>The single most important Go rule for Kubernetes tooling</b>
+  <p>Use <code>controller-runtime client.Client</code> everywhere you talk to the Kubernetes API — not raw client-go, not dynamic client, not rest client. It has a built-in cache that reduces API server load dramatically, uses the same scheme as kubebuilder, and handles reconnection automatically. This is what every production operator uses in 2026.</p>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('r-errors')">
+    <div class="comp-dot" style="background:#E11D48"></div>
+    <span class="comp-title">Error handling</span>
+    <span class="comp-chev open" id="chev-r-errors">▶</span>
+  </div>
+  <div class="comp-body open" id="body-r-errors">
+    <div class="section">
+      <div class="rule"><span class="rule-num">01</span><div class="rule-body"><b>Always wrap errors with context:</b> <code>return fmt.Errorf("patching annotation on %s: %w", name, err)</code>. Never return a bare <code>err</code>. When the error surfaces in logs, you need to know which operation failed.</div></div>
+      <div class="rule"><span class="rule-num">02</span><div class="rule-body"><b>Use <code>client.IgnoreNotFound(err)</code></b> when fetching resources in a reconcile loop. Resources can be deleted between the watch event and your fetch — this is expected, not an error.</div></div>
+      <div class="rule"><span class="rule-num">03</span><div class="rule-body"><b>Never panic in production code.</b> Only panic in init() and main() where the program cannot meaningfully continue. Everywhere else: return the error and let the caller decide.</div></div>
+      <div class="rule"><span class="rule-num">04</span><div class="rule-body"><b>Return <code>ctrl.Result{RequeueAfter: ...}</code> not errors</b> for expected retry scenarios in reconcilers. Returning an error triggers exponential backoff with jitter — good for unexpected failures. RequeueAfter is for scheduled re-checks like quota polling.</div></div>
+      <div class="code-block">// ✓ correct — wrap with context
+if err := r.Status().Update(ctx, &quota); err != nil {
+  return ctrl.Result{}, fmt.Errorf("updating quota status: %w", err)
+}
+
+// ✗ wrong — bare error loses context
+if err := r.Status().Update(ctx, &quota); err != nil {
+  return ctrl.Result{}, err
+}</div>
+    </div>
+  </div>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('r-log')">
+    <div class="comp-dot" style="background:#1D9E75"></div>
+    <span class="comp-title">Logging — slog for binaries, logr for operators</span>
+    <span class="comp-chev open" id="chev-r-log">▶</span>
+  </div>
+  <div class="comp-body open" id="body-r-log">
+    <div class="section">
+      <div class="rule"><span class="rule-num">01</span><div class="rule-body"><b>Cost patcher + CLI + agent: use <code>log/slog</code></b> with JSONHandler in production. It is stdlib, zero deps, and the 2026 ecosystem standard. Switch to TextHandler for local dev with LOG_FORMAT=text env var.</div></div>
+      <div class="rule"><span class="rule-num">02</span><div class="rule-body"><b>TeamInferenceQuota operator: use <code>logr</code></b> via <code>log.FromContext(ctx)</code>. This is what controller-runtime expects. kubebuilder wires zap as the backend automatically.</div></div>
+      <div class="rule"><span class="rule-num">03</span><div class="rule-body"><b>Never use <code>fmt.Println</code> or <code>log.Println</code> in production code.</b> Unstructured output cannot be filtered, indexed, or correlated with traces. Every log line must be a structured key-value pair.</div></div>
+      <div class="rule"><span class="rule-num">04</span><div class="rule-body"><b>Always include namespace and resource name</b> in log fields: <code>slog.Info("patched annotation", "namespace", ns, "resource", name, "cost_per_token", cost)</code>. These are your debugging fields in production.</div></div>
+      <div class="code-block">// ✓ slog in cost patcher — structured, filterable
+logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+logger.Info("cost annotation written",
+  "namespace", pod.Namespace,
+  "resource",  owner.GetName(),
+  "adapter",   adapter.Name(),
+  "cost_per_token", fmt.Sprintf("$%.8f", costPerToken),
+)
+
+// ✗ wrong — unstructured, useless in production
+fmt.Printf("wrote annotation to %s\n", name)</div>
+    </div>
+  </div>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('r-k8s')">
+    <div class="comp-dot" style="background:#534AB7"></div>
+    <span class="comp-title">Kubernetes API patterns</span>
+    <span class="comp-chev open" id="chev-r-k8s">▶</span>
+  </div>
+  <div class="comp-body open" id="body-r-k8s">
+    <div class="section">
+      <div class="rule"><span class="rule-num">01</span><div class="rule-body"><b>Always use server-side apply for writes:</b> <code>r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner("kubefisher"))</code>. Never use Update() — it will conflict with other controllers. Server-side apply is idempotent and handles conflicts correctly.</div></div>
+      <div class="rule"><span class="rule-num">02</span><div class="rule-body"><b>For annotation patches specifically use MergePatch:</b> <code>client.MergeFrom(original)</code> → modify annotations → <code>r.Patch(ctx, modified, patch)</code>. This is safer than full Update and only touches the fields you changed.</div></div>
+      <div class="rule"><span class="rule-num">03</span><div class="rule-body"><b>Status updates use a separate sub-resource:</b> <code>r.Status().Update(ctx, obj)</code> not <code>r.Update(ctx, obj)</code>. Mixing them causes conflicts. kubebuilder's +kubebuilder:subresource:status marker enforces this at the API level.</div></div>
+      <div class="rule"><span class="rule-num">04</span><div class="rule-body"><b>Reconcile loops must be idempotent.</b> Running the same reconcile 10 times must produce the same result as running it once. Test this explicitly: apply resource, trigger reconcile 5 times, verify state is identical each time.</div></div>
+      <div class="code-block">// ✓ server-side apply — the correct 2026 pattern
+func (r *Reconciler) patchAnnotations(ctx context.Context,
+  obj client.Object, annotations map[string]string) error {
+
+  patch := client.MergeFrom(obj.DeepCopyObject().(client.Object))
+  existing := obj.GetAnnotations()
+  if existing == nil { existing = map[string]string{} }
+  for k, v := range annotations { existing[k] = v }
+  obj.SetAnnotations(existing)
+  return r.Patch(ctx, obj, patch)
+}</div>
+    </div>
+  </div>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('r-test')">
+    <div class="comp-dot" style="background:#BA7517"></div>
+    <span class="comp-title">Testing strategy</span>
+    <span class="comp-chev open" id="chev-r-test">▶</span>
+  </div>
+  <div class="comp-body open" id="body-r-test">
+    <div class="section">
+      <div class="rule"><span class="rule-num">01</span><div class="rule-body"><b>Unit tests for pure logic:</b> cost calculation, adapter detection, label parsing. Table-driven tests with <code>testify/assert</code>. These run in milliseconds and need no cluster.</div></div>
+      <div class="rule"><span class="rule-num">02</span><div class="rule-body"><b>Integration tests with envtest:</b> <code>sigs.k8s.io/controller-runtime/pkg/envtest</code> runs a real Kubernetes API server binary in your test. kubebuilder scaffolds this. Test your reconcile loop against it — not against mocks.</div></div>
+      <div class="rule"><span class="rule-num">03</span><div class="rule-body"><b>Never mock the Kubernetes client.</b> Mocks drift from real API behaviour and give false confidence. envtest is fast enough for CI (30–60s) and gives you real behaviour.</div></div>
+      <div class="rule"><span class="rule-num">04</span><div class="rule-body"><b>E2E tests with k3d:</b> <code>make cluster-up</code> → apply resources → assert annotations appear. Run this in GitHub Actions on pull requests using the same Makefile you use locally.</div></div>
+      <div class="code-block">// ✓ table-driven unit test
+func TestCostPerToken(t *testing.T) {
+  tests := []struct{
+    name          string
+    costPerHour   float64
+    tokensPerSec  float64
+    want          float64
+  }{
+    {"a10g busy",  1.24, 800, 1.24/800/3600},
+    {"zero tokens", 1.24, 0,   0}, // no divide by zero
+  }
+  for _, tc := range tests {
+    t.Run(tc.name, func(t *testing.T) {
+      got := computeCostPerToken(tc.costPerHour, tc.tokensPerSec)
+      assert.InDelta(t, tc.want, got, 0.0000001)
+    })
+  }
+}</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ══ PROJECT STRUCTURE ══ -->
+<div class="panel" id="p-structure">
+<div class="verdict">
+  <b>One repository, three binaries</b>
+  <p>Keep cost-patcher, operator (TeamInferenceQuota), and CLI in one Go module. Share internal packages (Prometheus client, pricing logic, K8s utilities). Build three separate binaries from cmd/. This is the standard pattern used by kubebuilder, kubectl, and every major Kubernetes tool.</p>
+</div>
+<div class="code-block">kubefisher/
+├── cmd/
+│   ├── cost-patcher/
+│   │   └── main.go          # cost patcher binary entry point
+│   ├── operator/
+│   │   └── main.go          # TeamInferenceQuota operator entry point
+│   ├── agent/
+│   │   └── main.go          # in-cluster agent (paid tier)
+│   └── kubefisher/
+│       └── main.go          # CLI binary entry point
+│
+├── internal/                # shared code — not importable externally
+│   ├── adapters/
+│   │   ├── interface.go     # PlatformAdapter interface
+│   │   ├── generic.go       # GenericAdapter (any Deployment)
+│   │   └── kserve.go        # KServeAdapter (LLMInferenceService)
+│   ├── cost/
+│   │   ├── calculator.go    # computeCostPerToken, computeCostPerHour
+│   │   └── calculator_test.go
+│   ├── prometheus/
+│   │   └── client.go        # queryInstant(), queryRange()
+│   └── k8s/
+│       └── patch.go         # patchAnnotations(), ownerRef helpers
+│
+├── api/
+│   └── quota/
+│       └── v1alpha1/
+│           └── teaminferencequota_types.go  # kubebuilder CRD types
+│
+├── config/
+│   ├── grafana/
+│   │   └── kubefisher-dashboard.json
+│   ├── alerts/
+│   │   └── prometheusrules.yaml
+│   ├── rbac/
+│   │   └── cost-patcher-clusterrole.yaml
+│   ├── gpu-pricing/
+│   │   └── configmap.yaml
+│   └── samples/
+│       ├── vllm-deployment.yaml
+│       └── teaminferencequota-sample.yaml
+│
+├── chart/                   # Helm chart
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+│
+├── hack/
+│   ├── k3d-config.yaml
+│   ├── fake-dcgm/
+│   └── versions.env
+│
+├── docs/
+│   ├── contract.md          # labels + annotations contract
+│   └── local-dev.md
+│
+├── Makefile
+├── go.mod
+└── go.sum</div>
+  <div style="margin-top:10px">
+    <button class="ask-btn" onclick="sendPrompt('Show me the internal/adapters/interface.go PlatformAdapter interface and internal/cost/calculator.go implementation')">Show me the shared internal packages ↗</button>
+  </div>
+</div>
+
+<!-- ══ TOOLING ══ -->
+<div class="panel" id="p-tooling">
+<div class="verdict">
+  <b>Set up the toolchain before writing a single line of product code</b>
+  <p>5 hours spent on tooling saves 50 hours of debugging and bad habits. Every item below should be green in CI before your first real commit.</p>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('t-lint')">
+    <div class="comp-dot" style="background:#1D9E75"></div>
+    <span class="comp-title">Linting — golangci-lint</span>
+    <span class="comp-chev open" id="chev-t-lint">▶</span>
+  </div>
+  <div class="comp-body open" id="body-t-lint">
+    <div class="section">
+      <div class="row"><b>Install</b><span><code>brew install golangci-lint</code> — do not use go install, version drift causes CI/local discrepancies</span></div>
+      <div class="row"><b>Config</b><span>Write <code>.golangci.yml</code> in repo root. Enable: errcheck, govet, staticcheck, exhaustive, noctx, sloglint. Disable: gochecknoglobals (too strict for CLI).</span></div>
+      <div class="row"><b>CI</b><span>Run <code>golangci-lint run ./...</code> on every PR. Block merge if it fails. Zero exceptions.</span></div>
+      <div class="row"><b>sloglint</b><span>Specifically add <code>sloglint</code> — it catches common slog mistakes like unkeyed attributes and inconsistent key casing.</span></div>
+      <div class="code-block"># .golangci.yml
+linters:
+  enable:
+    - errcheck      # all errors must be handled
+    - govet         # go vet built-in checks
+    - staticcheck   # SA* checks
+    - exhaustive    # switch on enums must be exhaustive
+    - noctx         # http requests need context
+    - sloglint      # structured logging correctness
+    - godot         # comments end with period
+  disable:
+    - gochecknoglobals  # cobra uses package-level vars
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters: [errcheck]  # test files allowed to ignore errors</div>
+    </div>
+  </div>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('t-ci')">
+    <div class="comp-dot" style="background:#534AB7"></div>
+    <span class="comp-title">CI — GitHub Actions</span>
+    <span class="comp-chev open" id="chev-t-ci">▶</span>
+  </div>
+  <div class="comp-body open" id="body-t-ci">
+    <div class="section">
+      <div class="row"><b>On every PR</b><span>go vet, golangci-lint, go test ./... with race detector, make manifests (verify CRD is up to date)</span></div>
+      <div class="row"><b>On merge to main</b><span>Build all three binaries, docker build + push to ghcr.io, helm lint, tag release with semantic version</span></div>
+      <div class="row"><b>Weekly</b><span>Dependency update via Dependabot for Go modules and GitHub Actions versions</span></div>
+      <div class="code-block"># .github/workflows/ci.yml
+name: CI
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.26' }
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v6
+      - run: go test -race -coverprofile=coverage.out ./...
+      - run: go tool cover -func=coverage.out
+      - run: make manifests && git diff --exit-code  # CRD drift check</div>
+      <button class="ask-btn" onclick="sendPrompt('Show me the complete GitHub Actions CI workflow for KubeFisher with lint, test, and docker build')">Show me full CI workflow ↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="comp">
+  <div class="comp-hdr" onclick="tog('t-make')">
+    <div class="comp-dot" style="background:#BA7517"></div>
+    <span class="comp-title">Makefile — your daily driver</span>
+    <span class="comp-chev open" id="chev-t-make">▶</span>
+  </div>
+  <div class="comp-body open" id="body-t-make">
+    <div class="section">
+      <div class="code-block">## Essential Makefile targets for KubeFisher
+
+# Cluster
+cluster-up:     # k3d + KServe + Prometheus + fake DCGM
+cluster-down:   # tear down cleanly
+cluster-reset:  # down + up
+
+# Development
+build:          # go build all three binaries
+test:           # go test -race ./...
+lint:           # golangci-lint run ./...
+fmt:            # gofmt -w + goimports -w
+
+# Kubernetes
+manifests:      # controller-gen → CRD YAML
+generate:       # controller-gen → deepcopy methods
+install:        # kubectl apply CRDs to cluster
+run-patcher:    # go run ./cmd/cost-patcher/main.go
+
+# Docker
+docker-build:   # docker buildx build all images
+docker-push:    # push to ghcr.io
+
+# Helm
+helm-lint:      # helm lint chart/kubefisher
+helm-install:   # helm install on current cluster
+helm-uninstall: # clean uninstall</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+function tog(id){
+  document.getElementById('body-'+id)?.classList.toggle('open');
+  document.getElementById('chev-'+id)?.classList.toggle('open');
+}
+</script>
+</body></html>

@@ -1,0 +1,33 @@
+# Minimal workload that requests a fake GPU AND carries all three kubefisher.io
+# identity labels. Used alongside gpu-fake-workload (unlabeled) to verify that:
+#   - labeled pods produce kubefisher:cost_per_hour with exact kubefisher_io_team/
+#     platform/model values (not "unlabeled")
+#   - exactly ONE series is emitted per pod (no duplicate with "unlabeled" values)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-labeled-workload
+  namespace: llm-inference
+  labels:
+    app.kubernetes.io/name: gpu-labeled-workload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gpu-labeled-workload
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gpu-labeled-workload
+        kubefisher.io/team: team-test
+        kubefisher.io/platform: test-platform
+        kubefisher.io/model: test-model
+    spec:
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.9
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"

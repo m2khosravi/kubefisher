@@ -1,0 +1,247 @@
+# Default values for kubefisher.
+# This is a YAML-formatted file. Comments above each block describe what the
+# value controls; see charts/kubefisher/values.schema.json for type/format
+# validation that runs at `helm install` / `helm upgrade` time.
+
+# -- Override the chart name (defaults to "kubefisher").
+nameOverride: ""
+# -- Override the fully-qualified release name (defaults to "<release>-<chart>").
+fullnameOverride: ""
+
+# -- Extra labels added to every resource managed by the chart.
+commonLabels: {}
+# -- Extra annotations added to every resource managed by the chart.
+commonAnnotations: {}
+
+image:
+  # -- Container image repository for the cost-patcher controller.
+  # Published to ghcr.io on every `v*` tag via .github/workflows/release.yml.
+  # Override with `kubefisher/cost-patcher:dev` for local k3d dev
+  # (`make cluster-install-kubefisher-cost` does this automatically).
+  repository: ghcr.io/m2khosravi/kubefisher/cost-patcher
+  # -- Image tag. Empty string falls back to .Chart.AppVersion (e.g. "0.1.0").
+  # Override with `dev` for local k3d builds.
+  tag: ""
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+
+# -- imagePullSecrets references for private registries.
+imagePullSecrets: []
+
+# -- Number of cost-patcher replicas. Cost patcher is a singleton-by-design
+# reconciler; only set > 1 if you have a leader-election story (not yet shipped).
+replicaCount: 1
+
+# -- Extra labels for cost-patcher pods.
+podLabels: {}
+# -- Extra annotations for cost-patcher pods (e.g. additional checksum
+# annotations to trigger rollouts).
+podAnnotations: {}
+
+serviceAccount:
+  # -- Whether to create a dedicated ServiceAccount for cost-patcher.
+  create: true
+  # -- Name of the ServiceAccount. If create=true and name is empty, the
+  # full chart name is used.
+  name: ""
+  # -- Extra annotations for the ServiceAccount (e.g. workload identity).
+  annotations: {}
+
+# Pod-level securityContext (applied to all containers by default).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level securityContext.
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# -- Resource requests/limits for the cost-patcher container.
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# -- nodeSelector for the cost-patcher pod.
+nodeSelector: {}
+# -- tolerations for the cost-patcher pod.
+tolerations: []
+# -- affinity for the cost-patcher pod.
+affinity: {}
+
+# Probes are derived from service.port; override by setting full probe specs
+# on .Values.livenessProbe / .Values.readinessProbe if you need custom values.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http-metrics
+  initialDelaySeconds: 10
+  periodSeconds: 20
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http-metrics
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+# Cost-patcher application config (rendered as flags on the binary).
+config:
+  # -- Prometheus base URL the cost-patcher queries (no trailing slash).
+  # Default targets a kube-prometheus-stack install in the `monitoring` namespace.
+  prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
+  # -- How often the patcher reconciles cost annotations.
+  reconcileInterval: 30s
+  # -- How often the patcher reloads the gpu-pricing ConfigMap.
+  pricingRefreshInterval: 60s
+  # -- HTTP listen address for /metrics, /healthz, /readyz.
+  httpAddr: ":8080"
+  # -- Log format: "json" (production) or "text" (local dev).
+  logFormat: json
+
+# GPU pricing ConfigMap (the cost-patcher reads this to expose
+# `kubefisher_gpu_price_per_hour_by_node` to Prometheus).
+gpuPricing:
+  # -- Whether the chart should create the gpu-pricing ConfigMap.
+  # Set to false if you manage pricing out-of-band (e.g. via Argo CD).
+  create: true
+  # -- ConfigMap name. The cost-patcher RBAC is scoped to this exact name.
+  name: gpu-pricing
+  # -- ConfigMap data key holding the YAML pricing payload.
+  dataKey: pricing.yaml
+  # -- Pricing payload. See docs/contract.md for the full schema.
+  pricing:
+    version: 1
+    currency: USD
+    GPUs:
+      - description: "Default A10G example - override me"
+        match:
+          node_labels:
+            accelerator: "nvidia-a10g"
+        price_per_gpu_hour: 1.25
+
+service:
+  # -- Service type for the cost-patcher /metrics Service.
+  type: ClusterIP
+  # -- Service port for the cost-patcher /metrics Service.
+  port: 8080
+
+costPatcher:
+  # -- Prometheus rate window used in the kubefisher:cost_per_token recording rule
+  # denominator: rate(vllm:prompt_tokens_total[window]) + rate(vllm:generation_tokens_total[window]).
+  # Must be a valid Prometheus duration string (e.g. "5m", "2m").
+  # Increasing the window smooths out token-rate spikes at the cost of a longer
+  # warm-up delay before cost/token data appears.
+  tokenRateWindow: "5m"
+
+# Observability integrations (assume kube-prometheus-stack is installed).
+observability:
+  serviceMonitor:
+    # -- Create a ServiceMonitor for cost-patcher /metrics.
+    enabled: true
+    # -- Namespace for the ServiceMonitor. Empty string => release namespace.
+    namespace: ""
+    # -- Scrape interval.
+    interval: 30s
+    # -- Scrape timeout.
+    scrapeTimeout: ""
+    # -- Extra labels on the ServiceMonitor. The default `release: prometheus`
+    # matches the kube-prometheus-stack default `serviceMonitorSelector`.
+    additionalLabels:
+      release: prometheus
+  prometheusRule:
+    # -- Create the KubeFisher recording rules PrometheusRule.
+    enabled: true
+    # -- Namespace for the PrometheusRule. Empty string => release namespace.
+    namespace: ""
+    # -- Extra labels on the PrometheusRule. The default `release: prometheus`
+    # matches the kube-prometheus-stack default `ruleSelector`.
+    additionalLabels:
+      release: prometheus
+  grafanaDashboard:
+    # -- Create a ConfigMap holding the KubeFisher dashboard JSON for the
+    # Grafana sidecar to auto-import.
+    enabled: true
+    # -- Namespace for the dashboard ConfigMap. Empty string => release
+    # namespace (kube-prometheus-stack's Grafana sidecar searches all
+    # namespaces by default).
+    namespace: ""
+    # -- Sidecar discovery label key.
+    sidecarLabel: grafana.sidecar.dashboards
+    # -- Sidecar discovery label value.
+    sidecarLabelValue: "1"
+
+# TeamInferenceQuota operator (CRD controller + GPU pod validating webhook).
+operator:
+  # -- Deploy the quota operator manager and optional admission webhook.
+  enabled: true
+  image:
+    # -- Container image repository for the quota operator.
+    # Published to ghcr.io on every `v*` tag via .github/workflows/release.yml.
+    # Override with `kubefisher/operator:dev` for local k3d dev
+    # (`make cluster-install-kubefisher` does this automatically).
+    repository: ghcr.io/m2khosravi/kubefisher/operator
+    # -- Image tag. Empty string falls back to .Chart.AppVersion (e.g. "0.1.0").
+    # Override with `dev` for local k3d builds.
+    tag: ""
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+  # -- Operator replicas. Use 1 unless leader election is enabled on the binary.
+  replicaCount: 1
+  # -- Prometheus URL for quota reconcile. Empty => use config.prometheusUrl.
+  prometheusUrl: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  webhook:
+    # -- Register ValidatingWebhookConfiguration for GPU pod CREATE.
+    enabled: true
+    certManager:
+      # -- Issue TLS via cert-manager (selfSigned Issuer). Requires cert-manager in cluster.
+      enabled: true
+      issuerName: ""
+      certificateName: ""
+      secretName: ""
+    namespaceSelector:
+      labelKey: kubefisher.io/quota-enforcement
+      labelValue: enabled
+      excludedNamespaces:
+        - kube-system
+        - kubefisher-system

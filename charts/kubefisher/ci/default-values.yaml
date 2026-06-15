@@ -1,0 +1,2 @@
+# CI: default install (everything enabled, defaults preserved).
+# Used by `helm lint --strict` and `helm template` in chart-lint.yml.

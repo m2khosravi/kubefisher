@@ -1,0 +1,30 @@
+# Minimal RayService CRD stub for envtest (no KubeRay dependency).
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rayservices.ray.io
+spec:
+  group: ray.io
+  names:
+    kind: RayService
+    listKind: RayServiceList
+    plural: rayservices
+    singular: rayservice
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            status:
+              type: object
+              properties:
+                activeServiceStatus:
+                  type: object
+                  properties:
+                    rayClusterName:
+                      type: string
+          x-kubernetes-preserve-unknown-fields: true

@@ -1,0 +1,22 @@
+# Patterns to ignore when building packages.
+.DS_Store
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+*.tmproj
+*.bak
+*.swp
+*.tgz
+*~
+# CI value files are only used by `helm lint`/CI, not shipped to users.
+ci/
+# OWNERS files for chart governance.
+OWNERS
+OWNERS_ALIASES
+# Editor / IDE.
+.idea/
+.vscode/

@@ -1,0 +1,32 @@
+# Minimal workload that requests a fake GPU (k3d + make cluster-gpu) for quick cost/hour tests.
+# Does not expose vLLM metrics — cost-per-token will not be written for this Deployment.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-inference
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-fake-workload
+  namespace: llm-inference
+  labels:
+    app.kubernetes.io/name: gpu-fake-workload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gpu-fake-workload
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gpu-fake-workload
+    spec:
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.9
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"

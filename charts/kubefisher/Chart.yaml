@@ -1,0 +1,34 @@
+apiVersion: v2
+name: kubefisher
+description: |
+  GPU cost visibility and team quota platform for AI inference on Kubernetes.
+  Installs the cost-patcher controller, TeamInferenceQuota operator (optional
+  GPU admission webhook with cert-manager TLS), recording rules, Grafana dashboard,
+  and GPU pricing ConfigMap on top of an existing kube-prometheus-stack install.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/m2khosravi/kubefisher
+sources:
+  - https://github.com/m2khosravi/kubefisher
+keywords:
+  - kubefisher
+  - gpu
+  - cost
+  - inference
+  - prometheus
+  - grafana
+  - dcgm
+  - kserve
+  - vllm
+maintainers:
+  - name: KubeFisher maintainers
+    url: https://github.com/m2khosravi/kubefisher
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: TeamInferenceQuota operator, validating webhook (failurePolicy Ignore), cert-manager TLS, and CRD.
+    - kind: added
+      description: Initial Helm chart for cost-patcher, PrometheusRule, Grafana dashboard, and GPU pricing.
+  artifacthub.io/license: Apache-2.0

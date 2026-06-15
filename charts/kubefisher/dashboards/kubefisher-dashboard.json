@@ -1,0 +1,384 @@
+{
+  "uid": "kubefisher",
+  "title": "KubeFisher",
+  "tags": ["kubefisher", "cost", "gpu"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      },
+      {
+        "type": "query",
+        "name": "namespace",
+        "label": "Namespace",
+        "datasource": { "type": "prometheus", "uid": "$datasource" },
+        "query": { "query": "label_values(kubefisher:cost_per_hour, namespace)", "refId": "PromVarNamespace" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": ".*" }
+      },
+      {
+        "type": "query",
+        "name": "team",
+        "label": "Team",
+        "datasource": { "type": "prometheus", "uid": "$datasource" },
+        "query": { "query": "label_values(kubefisher:cost_per_hour, kubefisher_io_team)", "refId": "PromVarTeam" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": ".*" }
+      },
+      {
+        "type": "query",
+        "name": "platform",
+        "label": "Platform",
+        "datasource": { "type": "prometheus", "uid": "$datasource" },
+        "query": { "query": "label_values(kubefisher:cost_per_hour, kubefisher_io_platform)", "refId": "PromVarPlatform" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": ".*" }
+      },
+      {
+        "type": "query",
+        "name": "model",
+        "label": "Model",
+        "datasource": { "type": "prometheus", "uid": "$datasource" },
+        "query": { "query": "label_values(kubefisher:cost_per_hour, kubefisher_io_model)", "refId": "PromVarModel" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": ".*" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Team budget utilization (month-to-date)",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "Monthly cost budget utilization (MTD)",
+      "description": "Percentage of the monthly USD cost budget consumed per team namespace. Sourced from kubefisher_tiq_cost_budget_used_pct (= 100 - status.costBudgetRemainingPct). Only namespaces with a TeamInferenceQuota object appear here.",
+      "gridPos": { "x": 0, "y": 1, "w": 16, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "red",    "value": 90 }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "$datasource" },
+          "expr": "kubefisher_tiq_cost_budget_used_pct",
+          "legendFormat": "{{namespace}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Team quota phase",
+      "description": "Current TeamInferenceQuota phase per team namespace. Sourced from kubefisher_tiq_phase (0=Unknown, 1=Active, 2=Warning, 3=Exceeded).",
+      "gridPos": { "x": 16, "y": 1, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Unknown",  "color": "orange" },
+                "1": { "text": "Active",   "color": "green" },
+                "2": { "text": "Warning",  "color": "yellow" },
+                "3": { "text": "Exceeded", "color": "red" }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [ { "color": "green", "value": null } ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "$datasource" },
+          "expr": "kubefisher_tiq_phase",
+          "legendFormat": "{{namespace}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "type": "barchart",
+      "title": "Cost per 1M tokens (by model)",
+      "description": "USD cost per 1,000,000 tokens (prompt + generation) by model. The underlying kubefisher:cost_per_token recording rule uses a 5m rate window for vllm:prompt_tokens_total and vllm:generation_tokens_total. The panel may show \"No data\" until a model has received enough traffic to populate that window.",
+      "gridPos": { "x": 0, "y": 9, "w": 12, "h": 9 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": {
+        "orientation": "horizontal",
+        "legend": { "displayMode": "list", "placement": "right" },
+        "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "avg by (kubefisher_io_model) (kubefisher:cost_per_token{namespace=~\"${namespace:regex}\",kubefisher_io_team=~\"${team:regex}\",kubefisher_io_platform=~\"${platform:regex}\",kubefisher_io_model=~\"${model:regex}\"}) * 1000000",
+          "legendFormat": "{{kubefisher_io_model}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "GPU utilisation % (by node)",
+      "description": "Per-node GPU utilisation from DCGM_FI_DEV_GPU_UTIL, scraped via the NVIDIA GPU Operator's DCGM exporter. Local k3d development uses dcgm-mock (see docs/cluster-dev.md); values will be synthetic in that environment.",
+      "gridPos": { "x": 12, "y": 9, "w": 12, "h": 9 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red",    "value": 90 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "avg by (node) (DCGM_FI_DEV_GPU_UTIL)",
+          "legendFormat": "{{node}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Daily GPU spend (24h run-rate)",
+      "gridPos": { "x": 0, "y": 18, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(kubefisher:cost_per_hour{namespace=~\"${namespace:regex}\"}) * 24",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "GPU efficiency (cluster-wide)",
+      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "description": "Cluster-wide average GPU utilisation sourced from kubefisher:gpu_efficiency_pct (= avg(DCGM_FI_DEV_GPU_UTIL)). A low value alongside a high Daily GPU spend indicates idle-but-allocated GPUs.",
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "green",  "value": 70 }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "kubefisher:gpu_efficiency_pct",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "Cost per hour (by namespace)",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (namespace) (kubefisher:cost_per_hour{namespace=~\"${namespace:regex}\"})",
+          "legendFormat": "{{namespace}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "bargauge",
+      "title": "Cost per hour (by team)",
+      "description": "Current GPU cost rate grouped by kubefisher.io/team label. The \"unlabeled\" bucket represents workloads with no team label set — keeping it visible ensures untracked spend stays auditable.",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "$datasource" },
+          "expr": "sum by (kubefisher_io_team) (kubefisher:cost_per_hour{namespace=~\"${namespace:regex}\"})",
+          "legendFormat": "{{kubefisher_io_team}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "GPU list price per hour (by node)",
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (node, currency) (kubefisher_gpu_price_per_hour_by_node)",
+          "legendFormat": "{{node}}",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}

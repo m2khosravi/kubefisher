@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dcgm-mock
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: dcgm-mock
+data:
+  nginx.conf: |
+    pid /tmp/nginx.pid;
+    events {}
+    http {
+      server {
+        listen 9400;
+        server_name _;
+
+        location = /metrics {
+          default_type text/plain;
+          alias /usr/share/nginx/html/metrics.prom;
+        }
+
+        location = / {
+          return 404;
+        }
+      }
+    }
+  metrics.prom: |
+    # HELP DCGM_FI_DEV_GPU_UTIL GPU utilization (percent).
+    # TYPE DCGM_FI_DEV_GPU_UTIL gauge
+    DCGM_FI_DEV_GPU_UTIL{gpu="0",UUID="GPU-mock-0",modelName="MOCK_GPU"} 12
+
+    # HELP DCGM_FI_DEV_MEM_COPY_UTIL Memory copy utilization (percent).
+    # TYPE DCGM_FI_DEV_MEM_COPY_UTIL gauge
+    DCGM_FI_DEV_MEM_COPY_UTIL{gpu="0",UUID="GPU-mock-0",modelName="MOCK_GPU"} 3
+
+    # HELP DCGM_FI_DEV_FB_USED Framebuffer memory used (MiB).
+    # TYPE DCGM_FI_DEV_FB_USED gauge
+    DCGM_FI_DEV_FB_USED{gpu="0",UUID="GPU-mock-0",modelName="MOCK_GPU"} 256
+
+    # HELP DCGM_FI_DEV_GPU_TEMP GPU temperature (C).
+    # TYPE DCGM_FI_DEV_GPU_TEMP gauge
+    DCGM_FI_DEV_GPU_TEMP{gpu="0",UUID="GPU-mock-0",modelName="MOCK_GPU"} 42
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dcgm-mock
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: dcgm-mock
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-mock
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dcgm-mock
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - name: metrics
+              containerPort: 9400
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: cfg
+              mountPath: /usr/share/nginx/html/metrics.prom
+              subPath: metrics.prom
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: dcgm-mock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcgm-mock
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: dcgm-mock
+spec:
+  selector:
+    app.kubernetes.io/name: dcgm-mock
+  ports:
+    - name: metrics
+      port: 9400
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcgm-mock
+  namespace: monitoring
+  labels:
+    # Must match the Helm release name used for kube-prometheus-stack.
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-mock
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      relabelings:
+        - action: replace
+          sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+

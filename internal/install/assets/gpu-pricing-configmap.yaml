@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-pricing
+  labels:
+    app.kubernetes.io/managed-by: kubefisher-cli
+    app.kubernetes.io/component: gpu-pricing
+data:
+  pricing.yaml: |
+    version: 1
+    currency: USD
+    GPUs:
+      - description: "Default A10G example - override me"
+        match:
+          node_labels:
+            accelerator: "nvidia-a10g"
+        price_per_gpu_hour: 1.25

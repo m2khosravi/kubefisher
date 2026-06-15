@@ -1,0 +1,109 @@
+# Deterministic vLLM token counter generator that DOES NOT require CUDA.
+# It requests a fake GPU so the cost-patcher selects the pod, and it exposes
+# a monotonically increasing vLLM generation counter so rate(...[2m]) > 0.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-inference
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-costtoken-mock
+  namespace: llm-inference
+  labels:
+    app.kubernetes.io/name: vllm-costtoken-mock
+data:
+  server.py: |
+    import time
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    start = time.time()
+
+    class Handler(BaseHTTPRequestHandler):
+      def do_GET(self):
+        if self.path != "/metrics":
+          self.send_response(404)
+          self.end_headers()
+          return
+
+        # Increase counters over time so Prometheus rate() > 0.
+        elapsed = max(0.0, time.time() - start)
+        prompt = int(100 + elapsed * 10)
+        gen = int(25 + elapsed * 5)
+
+        body = f"""# HELP vllm:prompt_tokens_total Number of prefill tokens processed.
+    # TYPE vllm:prompt_tokens_total counter
+    vllm:prompt_tokens_total{{model_name="mock-model"}} {prompt}
+
+    # HELP vllm:generation_tokens_total Number of generation tokens processed.
+    # TYPE vllm:generation_tokens_total counter
+    vllm:generation_tokens_total{{model_name="mock-model"}} {gen}
+    """
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; version=0.0.4")
+        self.end_headers()
+        self.wfile.write(body.encode("utf-8"))
+
+      def log_message(self, format, *args):
+        return
+
+    HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-costtoken-mock
+  namespace: llm-inference
+  labels:
+    app.kubernetes.io/name: vllm-costtoken-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm-costtoken-mock
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm-costtoken-mock
+        kubefisher.io/platform: vllm
+        kubefisher.io/model: mock-model
+        kubefisher.io/team: default
+    spec:
+      containers:
+        - name: metrics
+          image: python:3.12-alpine
+          command: ["python", "/app/server.py"]
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: cfg
+              mountPath: /app/server.py
+              subPath: server.py
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: vllm-costtoken-mock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-costtoken-mock
+  namespace: llm-inference
+  labels:
+    app.kubernetes.io/name: vllm-costtoken-mock
+spec:
+  selector:
+    app.kubernetes.io/name: vllm-costtoken-mock
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+

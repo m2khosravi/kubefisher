@@ -1,0 +1,49 @@
+# Demo workload for kubefisher cost table demonstration.
+# Uses busybox (no GPU required) with pre-set cost annotations
+# that simulate what cost-patcher writes after it runs.
+# This lets `kubefisher cost -A` show a populated row without
+# requiring a GPU, DCGM, or a running cost-patcher instance.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opt-125m
+  namespace: demo
+  annotations:
+    kubefisher.io/cost-per-hour-per-replica: "0.45"
+    kubefisher.io/cost-per-hour-total: "0.45"
+    kubefisher.io/cost-per-hour: "0.45"          # deprecated compat key
+    kubefisher.io/cost-per-token: "0.0000123"
+    kubefisher.io/last-updated-at: "2026-01-01T00:00:00Z"
+  labels:
+    kubefisher.io/platform: vllm
+    kubefisher.io/model: facebook-opt-125m
+    kubefisher.io/team: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opt-125m
+  template:
+    metadata:
+      labels:
+        app: opt-125m
+        kubefisher.io/platform: vllm
+        kubefisher.io/model: facebook-opt-125m
+        kubefisher.io/team: demo
+    spec:
+      containers:
+        - name: model
+          image: busybox:stable
+          command: ["sh", "-c", "echo 'demo model running'; sleep inf"]
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

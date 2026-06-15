@@ -1,0 +1,38 @@
+# Minimal GPU Operator values for local k3d experimentation.
+#
+# Notes:
+# - Real DCGM metrics require NVIDIA hardware + drivers/runtime on nodes.
+# - k3d nodes typically do not satisfy those prerequisites; installs may fail
+#   or DCGM may not produce metrics until moved to a Linux+NVIDIA environment.
+
+operator:
+  defaultRuntime: containerd
+
+driver:
+  enabled: true
+
+toolkit:
+  enabled: true
+
+devicePlugin:
+  enabled: true
+
+dcgmExporter:
+  enabled: true
+  # Prefer operator-managed ServiceMonitor when available; we also ship a
+  # fallback ServiceMonitor in-repo for kube-prometheus-stack label matching.
+
+nodeFeatureDiscovery:
+  enableNodeFeatureApi: true
+
+migManager:
+  enabled: false
+
+vfioManager:
+  enabled: false
+
+sandboxDevicePlugin:
+  enabled: false
+
+kataManager:
+  enabled: false

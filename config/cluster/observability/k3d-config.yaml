@@ -1,0 +1,46 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: kubefisher-dev
+
+# Local-only cluster intended for observability + platform-agnostic metrics.
+image: rancher/k3s:v1.32.13-k3s1
+servers: 1
+agents: 2
+
+ports:
+  # Grafana (Service type LoadBalancer on port 3000)
+  - port: 3000:3000
+    nodeFilters:
+      - loadbalancer
+  # Prometheus (Service type LoadBalancer on port 9090)
+  - port: 9090:9090
+    nodeFilters:
+      - loadbalancer
+
+options:
+  k3d:
+    wait: true
+    timeout: "120s"
+  k3s:
+    extraArgs:
+      - arg: "--disable=traefik"
+        nodeFilters:
+          - server:*
+    nodeLabels:
+      - label: accelerator=nvidia-a10g
+        nodeFilters:
+          - agent:0
+          - agent:1
+      - label: kubefisher.io/spot=true
+        nodeFilters:
+          - agent:1
+
+volumes:
+  # NVIDIA driver/manager containers expect sysfs paths to exist on the node.
+  # Mount the host sysfs into k3d node containers (best-effort for local dev).
+  - volume: /sys:/sys:rw
+    nodeFilters:
+      - server:*
+      - agent:*
+
