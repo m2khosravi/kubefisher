@@ -4,7 +4,7 @@
 
 Works with any inference stack on Kubernetes (KServe, vLLM, BentoML, Ray, Triton, plain Deployments). KubeFisher does not replace your serving platform — it governs GPU spend across all of them.
 
-[![CI](https://github.com/m2khosravi/kubefisher/actions/workflows/ci.yml/badge.svg)](https://github.com/m2khosravi/kubefisher/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/m2khosravi/kubefisher/ci.yaml?branch=main&label=CI)](https://github.com/m2khosravi/kubefisher/actions/workflows/ci.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 
