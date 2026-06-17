@@ -63,11 +63,23 @@ jobs:
             exit 1
           fi
 
+      - name: Construct image tags
+        id: image_tags
+        run: |
+          image="${{ matrix.component.image }}"
+          full_tags=""
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.tags.outputs.tags }}"
+          for tag in "${TAG_ARRAY[@]}"; do
+            [ -n "$full_tags" ] && full_tags="${full_tags},"
+            full_tags="${full_tags}${image}:${tag}"
+          done
+          echo "tags=${full_tags}" >> $GITHUB_OUTPUT
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.component.dockerfile }}
           push: true
-          tags: ${{ matrix.component.image }}:${{ steps.tags.outputs.tags }}
+          tags: ${{ steps.image_tags.outputs.tags }}
           platforms: linux/amd64
