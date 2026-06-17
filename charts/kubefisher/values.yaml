@@ -19,8 +19,8 @@ image:
   # Override with `kubefisher/cost-patcher:dev` for local k3d dev
   # (`make cluster-install-kubefisher-cost` does this automatically).
   repository: ghcr.io/m2khosravi/kubefisher/cost-patcher
-  # -- Image tag. Empty string falls back to .Chart.AppVersion (e.g. "0.1.0").
-  # Override with `dev` for local k3d builds.
+  # Leave empty to use Chart.appVersion. For local k3d dev, override with:
+  #   --set image.tag=dev
   tag: ""
   # -- Image pull policy.
   pullPolicy: IfNotPresent
@@ -193,8 +193,8 @@ operator:
     # Override with `kubefisher/operator:dev` for local k3d dev
     # (`make cluster-install-kubefisher` does this automatically).
     repository: ghcr.io/m2khosravi/kubefisher/operator
-    # -- Image tag. Empty string falls back to .Chart.AppVersion (e.g. "0.1.0").
-    # Override with `dev` for local k3d builds.
+    # Leave empty to use Chart.appVersion. For local k3d dev, override with:
+    #   --set operator.image.tag=dev
     tag: ""
     # -- Image pull policy.
     pullPolicy: IfNotPresent

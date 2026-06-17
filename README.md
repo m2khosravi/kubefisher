@@ -47,10 +47,10 @@ flowchart TB
     quotaCtrl --> webhook
     webhook -.-> k8s
 
-    classDef kfNode fill:#1a73e8,color:#fff,stroke:#1558b0,stroke-width:1px
-    classDef obsNode fill:#34a853,color:#fff,stroke:#1e8e3e,stroke-width:1px
-    classDef srvNode fill:#fbbc04,color:#333,stroke:#f29900,stroke-width:1px
-    classDef apiNode fill:#ea4335,color:#fff,stroke:#c5221f,stroke-width:1px
+    classDef kfNode fill:blue,color:white,stroke:blue,stroke-width:1px
+    classDef obsNode fill:green,color:white,stroke:green,stroke-width:1px
+    classDef srvNode fill:yellow,color:black,stroke:yellow,stroke-width:1px
+    classDef apiNode fill:red,color:white,stroke:red,stroke-width:1px
 
     class costPatcher,quotaCtrl,webhook kfNode
     class prom,graf,dcgm obsNode

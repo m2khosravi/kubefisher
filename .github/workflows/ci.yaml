@@ -1,0 +1,89 @@
+name: ci
+
+# Minimal pull-request CI: helm lint for the chart, plus go vet + go test for
+# the cost-patcher. Intentionally does NOT build or push container images
+# (that path is opt-in and currently runs locally via the Makefile).
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+# Cancel a previous in-flight run when a PR is force-pushed (saves minutes
+# on rapid iteration).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  helm-lint:
+    name: helm lint
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.18.3
+
+      - name: helm lint (strict)
+        run: helm lint charts/kubefisher --strict
+
+      - name: helm template (default values)
+        run: |
+          helm template kubefisher charts/kubefisher \
+            --namespace kubefisher-system \
+            -f charts/kubefisher/ci/default-values.yaml >/dev/null
+
+      - name: helm template (observability disabled)
+        run: |
+          helm template kubefisher charts/kubefisher \
+            --namespace kubefisher-system \
+            -f charts/kubefisher/ci/observability-disabled-values.yaml >/dev/null
+
+  go-check:
+    name: Go build + vet
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Root module: download deps
+        run: go mod download
+
+      - name: Root module: build
+        run: go build ./...
+
+      - name: Root module: vet
+        run: go vet ./...
+
+      - name: Operator module: download deps
+        run: |
+          cd operator
+          go mod download
+
+      - name: Operator module: build
+        run: |
+          cd operator
+          go build ./...
+
+      - name: Operator module: vet
+        run: |
+          cd operator
+          go vet ./...
