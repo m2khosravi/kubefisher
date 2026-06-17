@@ -17,19 +17,18 @@ concurrency:
 
 jobs:
   publish:
-    name: Publish GHCR images
+    name: Publish Docker Hub images
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     strategy:
       matrix:
         component:
           - name: cost-patcher
-            image: ghcr.io/m2khosravi/kubefisher/cost-patcher
+            image: m2khosravi/kubefisher-cost-patcher
             dockerfile: build/cost-patcher/Dockerfile
           - name: operator
-            image: ghcr.io/m2khosravi/kubefisher/operator
+            image: m2khosravi/kubefisher-operator
             dockerfile: operator/Dockerfile
     steps:
       - name: Checkout repository
@@ -43,13 +42,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine image tags
         id: tags
