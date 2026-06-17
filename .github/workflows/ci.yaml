@@ -64,26 +64,26 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Root module: download deps
+      - name: "Root module: download deps"
         run: go mod download
 
-      - name: Root module: build
+      - name: "Root module: build"
         run: go build ./...
 
-      - name: Root module: vet
+      - name: "Root module: vet"
         run: go vet ./...
 
-      - name: Operator module: download deps
+      - name: "Operator module: download deps"
         run: |
           cd operator
           go mod download
 
-      - name: Operator module: build
+      - name: "Operator module: build"
         run: |
           cd operator
           go build ./...
 
-      - name: Operator module: vet
+      - name: "Operator module: vet"
         run: |
           cd operator
           go vet ./...
