@@ -2,7 +2,7 @@
 # Build context must be the repository root (parent of operator/), not operator/ alone:
 #   docker build -f operator/Dockerfile -t IMG ..
 #   make -C operator docker-build
-FROM golang:1.26-bookworm AS builder
+FROM docker.io/library/golang:1.26-bookworm AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
